@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block content %}
+<main>
+<div class="card">
+    <h2>Contratos y finiquitos</h2>
+    <form method="get" class="f">
+        <label>Empleado
+            <select name="empleado">
+                {% for e in empleados %}
+                <option value="{{ e.pk }}" {% if empleado and empleado.pk == e.pk %}selected{% endif %}>{{ e.nombre }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Documento
+            <select name="tipo">
+                <option value="contrato" {% if tipo == 'contrato' %}selected{% endif %}>Contrato de trabajo</option>
+                <option value="finiquito" {% if tipo == 'finiquito' %}selected{% endif %}>Finiquito</option>
+            </select>
+        </label>
+        <button class="b" type="submit">Generar</button>
+    </form>
+    {% if texto %}<pre>{{ texto }}</pre>{% endif %}
+</div>
+</main>
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block content %}
+<main>
+<div class="card">
+    <h2>Eliminar empleado</h2>
+    <p>¿Eliminar a {{ empleado.nombre }}? También se borrarán sus licencias y vacaciones.</p>
+    <form method="post">
+        {% csrf_token %}
+        <button class="b r" type="submit">Sí, eliminar</button>
+        <a href="{% url 'inicio:empleado_list' %}">Cancelar</a>
+    </form>
+</div>
+</main>
+{% endblock %}

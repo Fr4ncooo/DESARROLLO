@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block content %}
+<main>
+<div class="card">
+    <h2>Licencias médicas</h2>
+    <div class="w"><table>
+        <tr><th>Folio</th><th>Empleado</th><th>Tipo</th><th>Desde</th><th>Hasta</th><th>Días hábiles</th><th>Observación</th></tr>
+        {% for l in licencias %}
+        <tr><td>{{ l.folio }}</td><td>{{ l.empleado.nombre }}</td><td>{{ l.tipo }}</td>
+            <td>{{ l.desde|date:"Y-m-d" }}</td><td>{{ l.hasta|date:"Y-m-d" }}</td>
+            <td>{{ l.dias_habiles }}</td><td>{{ l.observacion }}</td></tr>
+        {% empty %}
+        <tr><td colspan="7" class="m">Sin datos</td></tr>
+        {% endfor %}
+    </table></div>
+</div>
+<div class="card">
+    <h3>Registrar licencia</h3>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        <div class="f">
+            {% for campo in form %}
+            <label>{{ campo.label }} {{ campo }}{{ campo.errors }}</label>
+            {% endfor %}
+            <button class="b" type="submit">Registrar</button>
+        </div>
+    </form>
+</div>
+</main>
+{% endblock %}

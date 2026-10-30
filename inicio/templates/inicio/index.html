@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block title %}ERP Seguridad LTDA - Módulo RR.HH.{% endblock %}
+{% block content %}
+<main>
+<div class="card">
+    <h2>Resumen</h2>
+    <p>Empleados registrados: <b>{{ total_empleados }}</b></p>
+    <p>Licencias médicas: <b>{{ total_licencias }}</b></p>
+    <p>Solicitudes de vacaciones pendientes: <b>{{ vacaciones_pendientes }}</b></p>
+</div>
+</main>
+{% endblock %}

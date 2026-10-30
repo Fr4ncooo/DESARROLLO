@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}Ingreso - ERP Seguridad LTDA{% endblock %}
+{% block content %}
+<div id="login"><div class="card">
+    <h2>ERP Seguridad LTDA</h2>
+    <p class="m">Módulo de Recursos Humanos (prototipo).</p>
+    <form method="post">
+        {% csrf_token %}
+        {% if form.errors %}<p class="error">Usuario o contraseña incorrectos.</p>{% endif %}
+        <div class="f">
+            <label>Usuario {{ form.username }}</label>
+            <label>Contraseña {{ form.password }}</label>
+            <button class="b" type="submit">Ingresar</button>
+        </div>
+        <input type="hidden" name="next" value="{{ next }}">
+    </form>
+</div></div>
+{% endblock %}
