@@ -13,7 +13,7 @@
     <b>ERP Seguridad LTDA · RR.HH.</b>
     <span>
         {{ user.username }}
-        <form method="post" action="{% url 'logout' %}" style="display:inline">
+        <form method="post" action="{% url 'logout' %}" class="en-linea">
             {% csrf_token %}
             <button class="b r" type="submit">Salir</button>
         </form>
@@ -24,7 +24,7 @@
     <a href="{% url 'inicio:empleado_list' %}">Ficha del personal</a>
     <a href="{% url 'inicio:licencia_list' %}">Licencias</a>
     <a href="{% url 'inicio:vacacion_list' %}">Vacaciones</a>
-    <a href="{% url 'inicio:documento' %}">Contratos y finiquitos</a>
+    {% if user.is_staff %}<a href="{% url 'inicio:documento' %}">Contratos y finiquitos</a>{% endif %}
 </nav>
 {% endif %}
 {% if messages %}

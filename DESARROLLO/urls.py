@@ -14,11 +14,22 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+from django.conf import settings
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import include, path, re_path
+from django.views.static import serve
+
+from inicio.autenticacion import LoginSeguroView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('accounts/login/', LoginSeguroView.as_view(), name='login'),
     path('accounts/', include('django.contrib.auth.urls')),
     path('', include('inicio.urls')),
+]
+
+# Archivos estáticos del prototipo local: se sirven desde Django para que pasen por el middleware
+# de cabeceras de seguridad. En producción los entrega el servidor web (nginx) o WhiteNoise.
+urlpatterns += [
+    re_path(r'^static/(?P<path>.*)$', serve, {'document_root': str(settings.BASE_DIR / 'static')}),
 ]

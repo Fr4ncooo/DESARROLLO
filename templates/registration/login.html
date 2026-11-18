@@ -6,7 +6,7 @@
     <p class="m">Módulo de Recursos Humanos (prototipo).</p>
     <form method="post">
         {% csrf_token %}
-        {% if form.errors %}<p class="error">Usuario o contraseña incorrectos.</p>{% endif %}
+        {% if bloqueado %}<p class="error">Demasiados intentos fallidos. Intente nuevamente en 15 minutos.</p>{% elif form.errors %}<p class="error">Usuario o contraseña incorrectos.</p>{% endif %}
         <div class="f">
             <label>Usuario {{ form.username }}</label>
             <label>Contraseña {{ form.password }}</label>

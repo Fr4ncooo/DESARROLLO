@@ -1,11 +1,26 @@
 from datetime import date
+from functools import wraps
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
 
-from .forms import EmpleadoForm, LicenciaForm, VacacionForm
+from .forms import DocumentoForm, EmpleadoForm, LicenciaForm, VacacionForm
 from .models import Empleado, Licencia, Vacacion
+from .utilidades import formatear_pesos
+
+
+def solo_admin(vista):
+    """Solo el rol administrador (is_staff) accede; el resto recibe 403."""
+    @wraps(vista)
+    def envoltura(request, *args, **kwargs):
+        if not request.user.is_staff:
+            raise PermissionDenied
+        return vista(request, *args, **kwargs)
+    return login_required(envoltura)
 
 
 @login_required
@@ -18,17 +33,18 @@ def index(request):
     return render(request, 'inicio/index.html', contexto)
 
 
-# ---- Ficha de personal (CRUD) ----
+# ---- Ficha de personal ----
 @login_required
 def empleado_list(request):
-    q = request.GET.get('q', '')
+    q = request.GET.get('q', '')[:100]
     empleados = Empleado.objects.all()
     if q:
         empleados = empleados.filter(nombre__icontains=q)
-    return render(request, 'inicio/empleado_list.html', {'empleados': empleados, 'q': q})
+    return render(request, 'inicio/empleado_list.html', {
+        'empleados': empleados, 'q': q, 've_todo': request.user.is_staff})
 
 
-@login_required
+@solo_admin
 def empleado_create(request):
     form = EmpleadoForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
@@ -38,7 +54,7 @@ def empleado_create(request):
     return render(request, 'inicio/form.html', {'form': form, 'titulo': 'Nuevo empleado'})
 
 
-@login_required
+@solo_admin
 def empleado_edit(request, pk):
     empleado = get_object_or_404(Empleado, pk=pk)
     form = EmpleadoForm(request.POST or None, instance=empleado)
@@ -49,7 +65,7 @@ def empleado_edit(request, pk):
     return render(request, 'inicio/form.html', {'form': form, 'titulo': 'Editar empleado'})
 
 
-@login_required
+@solo_admin
 def empleado_delete(request, pk):
     empleado = get_object_or_404(Empleado, pk=pk)
     if request.method == 'POST':
@@ -68,7 +84,8 @@ def licencia_list(request):
         messages.success(request, 'Licencia registrada.')
         return redirect('inicio:licencia_list')
     licencias = Licencia.objects.select_related('empleado')
-    return render(request, 'inicio/licencias.html', {'licencias': licencias, 'form': form})
+    return render(request, 'inicio/licencias.html', {
+        'licencias': licencias, 'form': form, 've_todo': request.user.is_staff})
 
 
 # ---- Vacaciones ----
@@ -89,33 +106,34 @@ def vacacion_list(request):
     })
 
 
-@login_required
+@solo_admin
+@require_POST
 def vacacion_decidir(request, pk, accion):
+    if accion not in ('aprobar', 'rechazar'):
+        raise Http404
     vacacion = get_object_or_404(Vacacion, pk=pk)
-    if request.method != 'POST':
-        return redirect('inicio:vacacion_list')
     if vacacion.registrado_por == request.user:
         messages.error(request, 'No puede resolver una solicitud que usted registró.')
-    elif accion == 'aprobar':
-        vacacion.estado = 'Aprobada'
+    elif vacacion.estado != 'Pendiente':
+        messages.error(request, 'La solicitud ya fue resuelta.')
+    else:
+        vacacion.estado = 'Aprobada' if accion == 'aprobar' else 'Rechazada'
         vacacion.save()
-        messages.success(request, 'Solicitud aprobada.')
-    elif accion == 'rechazar':
-        vacacion.estado = 'Rechazada'
-        vacacion.save()
-        messages.success(request, 'Solicitud rechazada.')
+        messages.success(request, f'Solicitud {vacacion.estado.lower()}.')
     return redirect('inicio:vacacion_list')
 
 
 # ---- Contratos y finiquitos ----
-@login_required
+@solo_admin
 def documento(request):
+    form = DocumentoForm(request.GET or None)
     texto = ''
     empleado = None
-    tipo = request.GET.get('tipo', 'contrato')
-    emp_id = request.GET.get('empleado')
-    if emp_id:
-        empleado = get_object_or_404(Empleado, pk=emp_id)
+    tipo = 'contrato'
+    if form.is_bound and form.is_valid():
+        empleado = form.cleaned_data['empleado']
+        tipo = form.cleaned_data['tipo'] or 'contrato'
+    if empleado:
         hoy = date.today()
         if tipo == 'finiquito':
             anios = (hoy - empleado.fecha_ingreso).days // 365
@@ -124,7 +142,7 @@ def documento(request):
                 f'FINIQUITO DE CONTRATO DE TRABAJO\n\n'
                 f'Trabajador: {empleado.nombre} (RUT {empleado.rut}).\n'
                 f'- Años de servicio: {anios}\n'
-                f'- Feriado pendiente ({empleado.saldo_vacaciones} días): ${feriado:,}'
+                f'- Feriado pendiente ({empleado.saldo_vacaciones} días): {formatear_pesos(feriado)}'
             )
         else:
             texto = (
@@ -133,12 +151,7 @@ def documento(request):
                 f'RUT {empleado.rut}, se acuerda:\n'
                 f'- Cargo: {empleado.cargo}\n'
                 f'- Centro de costo: {empleado.centro_costo}\n'
-                f'- Remuneración base: ${empleado.sueldo_base:,}\n'
+                f'- Remuneración base: {formatear_pesos(empleado.sueldo_base)}\n'
                 f'- Inicio: {empleado.fecha_ingreso}. Jornada: lunes a viernes, 09:00 a 18:00.'
             )
-    return render(request, 'inicio/documento.html', {
-        'empleados': Empleado.objects.all(),
-        'texto': texto,
-        'empleado': empleado,
-        'tipo': tipo,
-    })
+    return render(request, 'inicio/documento.html', {'form': form, 'texto': texto})

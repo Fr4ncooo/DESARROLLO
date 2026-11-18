@@ -8,7 +8,7 @@
         {% for l in licencias %}
         <tr><td>{{ l.folio }}</td><td>{{ l.empleado.nombre }}</td><td>{{ l.tipo }}</td>
             <td>{{ l.desde|date:"Y-m-d" }}</td><td>{{ l.hasta|date:"Y-m-d" }}</td>
-            <td>{{ l.dias_habiles }}</td><td>{{ l.observacion }}</td></tr>
+            <td>{{ l.dias_habiles }}</td><td>{% if ve_todo %}{{ l.observacion }}{% else %}[reservado]{% endif %}</td></tr>
         {% empty %}
         <tr><td colspan="7" class="m">Sin datos</td></tr>
         {% endfor %}

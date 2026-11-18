@@ -1,17 +1,23 @@
 from django.conf import settings
+from django.core.validators import MaxLengthValidator, MaxValueValidator, MinValueValidator
 from django.db import models
-from datetime import timedelta
+
+from .cifrado import CampoEnteroCifrado, CampoTextoCifrado
+from .utilidades import contar_dias_habiles
+from .validadores import (validar_fecha_razonable, validar_folio, validar_nombre, validar_rut,
+                          validar_texto_corto, validar_texto_libre)
 
 
 class Empleado(models.Model):
-    rut = models.CharField(max_length=12, unique=True)
-    nombre = models.CharField(max_length=100)
-    cargo = models.CharField(max_length=60)
-    centro_costo = models.CharField('centro de costo', max_length=60)
-    sueldo_base = models.PositiveIntegerField('sueldo base')
-    fecha_ingreso = models.DateField('fecha de ingreso')
-    afp = models.CharField('AFP', max_length=30, blank=True)
-    salud = models.CharField(max_length=30, blank=True)
+    rut = models.CharField(max_length=12, unique=True, validators=[validar_rut])
+    nombre = models.CharField(max_length=100, validators=[validar_nombre])
+    cargo = models.CharField(max_length=60, validators=[validar_texto_corto])
+    centro_costo = models.CharField('centro de costo', max_length=60, validators=[validar_texto_corto])
+    sueldo_base = CampoEnteroCifrado(
+        'sueldo base', validators=[MinValueValidator(300000), MaxValueValidator(20000000)])
+    fecha_ingreso = models.DateField('fecha de ingreso', validators=[validar_fecha_razonable])
+    afp = models.CharField('AFP', max_length=30, blank=True, validators=[validar_texto_corto])
+    salud = models.CharField(max_length=30, blank=True, validators=[validar_texto_corto])
 
     class Meta:
         ordering = ['nombre']
@@ -28,16 +34,6 @@ class Empleado(models.Model):
         return 15 - self.dias_vacaciones_tomados
 
 
-def contar_dias_habiles(desde, hasta):
-    n = 0
-    dia = desde
-    while dia <= hasta:
-        if dia.weekday() < 5:
-            n += 1
-        dia += timedelta(days=1)
-    return n
-
-
 class Licencia(models.Model):
     TIPOS = [
         ('Enfermedad común', 'Enfermedad común'),
@@ -45,11 +41,14 @@ class Licencia(models.Model):
         ('Accidente laboral', 'Accidente laboral'),
     ]
     empleado = models.ForeignKey(Empleado, on_delete=models.CASCADE, related_name='licencias')
-    folio = models.CharField(max_length=20, unique=True)
+    folio = models.CharField(max_length=20, unique=True, validators=[validar_folio])
     tipo = models.CharField(max_length=30, choices=TIPOS)
-    desde = models.DateField()
-    hasta = models.DateField()
-    observacion = models.TextField('observación', blank=True)
+    desde = models.DateField(validators=[validar_fecha_razonable])
+    hasta = models.DateField(validators=[validar_fecha_razonable])
+    # Diagnóstico y observaciones médicas: se guardan cifradas en la base de datos
+    observacion = CampoTextoCifrado(
+        'observación', max_length=500, blank=True,
+        validators=[MaxLengthValidator(500), validar_texto_libre])
 
     class Meta:
         ordering = ['-desde']
@@ -69,9 +68,9 @@ class Vacacion(models.Model):
         ('Rechazada', 'Rechazada'),
     ]
     empleado = models.ForeignKey(Empleado, on_delete=models.CASCADE, related_name='vacaciones')
-    desde = models.DateField()
-    hasta = models.DateField()
-    motivo = models.CharField(max_length=200, blank=True)
+    desde = models.DateField(validators=[validar_fecha_razonable])
+    hasta = models.DateField(validators=[validar_fecha_razonable])
+    motivo = models.CharField(max_length=200, blank=True, validators=[validar_texto_libre])
     estado = models.CharField(max_length=10, choices=ESTADOS, default='Pendiente')
     registrado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
 

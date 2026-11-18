@@ -48,6 +48,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'inicio.middleware.CabecerasSeguridadMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -96,6 +97,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {'min_length': 10},
     },
     {
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
@@ -139,3 +141,46 @@ MAILERS = {
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'inicio:index'
 LOGOUT_REDIRECT_URL = 'login'
+
+
+# ---------------------------------------------------------------------------
+# Sprint 2: protección de datos, sesiones y cabeceras (EVS3)
+# ---------------------------------------------------------------------------
+
+# Llave de cifrado en reposo (Fernet). Solo en variable de entorno (.env).
+DATA_ENCRYPTION_KEY = os.environ.get('DATA_ENCRYPTION_KEY', '')
+
+# Contraseñas: solo hash PBKDF2-SHA256 con sal aleatoria por usuario (nunca texto plano ni cifrado).
+PASSWORD_HASHERS = [
+    'django.contrib.auth.hashers.PBKDF2PasswordHasher',
+    'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher',
+]
+
+# HTTPS: se activa en un despliegue real con DJANGO_HTTPS=True (en local se prueba por HTTP).
+USAR_HTTPS = os.environ.get('DJANGO_HTTPS', 'False') == 'True'
+
+# Cookies de sesión y CSRF
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SECURE = USAR_HTTPS
+SESSION_COOKIE_AGE = 30 * 60          # la sesión caduca a los 30 minutos de inactividad
+SESSION_SAVE_EVERY_REQUEST = True     # renueva la expiración en cada petición
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SECURE = USAR_HTTPS
+
+# Los mensajes flash se guardan en la sesión del servidor y no en una cookie adicional
+MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'
+
+# Cabeceras HTTP (el resto las agrega inicio/middleware.py)
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = 'same-origin'
+SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'
+X_FRAME_OPTIONS = 'DENY'
+SECURE_SSL_REDIRECT = USAR_HTTPS
+SECURE_HSTS_SECONDS = 31536000 if USAR_HTTPS else 0
+SECURE_HSTS_INCLUDE_SUBDOMAINS = USAR_HTTPS
+
+# Limita el tamaño del cuerpo de una petición (1 MB)
+DATA_UPLOAD_MAX_MEMORY_SIZE = 1024 * 1024

@@ -17,9 +17,9 @@
         {% for v in vacaciones %}
         <tr><td>{{ v.empleado.nombre }}</td><td>{{ v.desde|date:"Y-m-d" }}</td><td>{{ v.hasta|date:"Y-m-d" }}</td>
             <td>{{ v.dias_habiles }}</td><td>{{ v.motivo }}</td><td>{{ v.estado }}</td><td>{{ v.registrado_por.username }}</td>
-            <td>{% if v.estado == 'Pendiente' %}
-                <form method="post" action="{% url 'inicio:vacacion_decidir' v.pk 'aprobar' %}" style="display:inline">{% csrf_token %}<button class="b" type="submit">Aprobar</button></form>
-                <form method="post" action="{% url 'inicio:vacacion_decidir' v.pk 'rechazar' %}" style="display:inline">{% csrf_token %}<button class="b r" type="submit">Rechazar</button></form>
+            <td>{% if v.estado == 'Pendiente' and user.is_staff and v.registrado_por_id != user.id %}
+                <form method="post" action="{% url 'inicio:vacacion_decidir' v.pk 'aprobar' %}" class="en-linea">{% csrf_token %}<button class="b" type="submit">Aprobar</button></form>
+                <form method="post" action="{% url 'inicio:vacacion_decidir' v.pk 'rechazar' %}" class="en-linea">{% csrf_token %}<button class="b r" type="submit">Rechazar</button></form>
                 {% endif %}</td></tr>
         {% empty %}
         <tr><td colspan="8" class="m">Sin datos</td></tr>

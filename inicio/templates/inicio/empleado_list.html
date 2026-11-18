@@ -1,27 +1,29 @@
 {% extends 'base.html' %}
+{% load seguridad %}
 {% block content %}
 <main>
 <div class="card">
     <h2>Ficha del personal</h2>
     <form method="get" class="f">
-        <label>Buscar por nombre <input name="q" value="{{ q }}"></label>
+        <label>Buscar por nombre <input name="q" value="{{ q }}" maxlength="100"></label>
         <button class="b" type="submit">Buscar</button>
-        <a href="{% url 'inicio:empleado_create' %}">+ Nuevo empleado</a>
+        {% if ve_todo %}<a href="{% url 'inicio:empleado_create' %}">+ Nuevo empleado</a>{% endif %}
     </form>
     <div class="w"><table>
         <tr><th>RUT</th><th>Nombre</th><th>Cargo</th><th>Centro de costo</th><th>Ingreso</th><th>Sueldo base</th><th>AFP / Salud</th><th></th></tr>
         {% for e in empleados %}
         <tr>
-            <td>{{ e.rut }}</td><td>{{ e.nombre }}</td><td>{{ e.cargo }}</td><td>{{ e.centro_costo }}</td>
-            <td>{{ e.fecha_ingreso|date:"Y-m-d" }}</td><td>${{ e.sueldo_base }}</td><td>{{ e.afp }} / {{ e.salud }}</td>
-            <td><a href="{% url 'inicio:empleado_edit' e.pk %}">Editar</a> ·
-                <a href="{% url 'inicio:empleado_delete' e.pk %}">Eliminar</a></td>
+            <td>{{ e.rut|rut_visible:ve_todo }}</td><td>{{ e.nombre }}</td><td>{{ e.cargo }}</td><td>{{ e.centro_costo }}</td>
+            <td>{{ e.fecha_ingreso|date:"Y-m-d" }}</td><td>{{ e.sueldo_base|sueldo_visible:ve_todo }}</td><td>{{ e.afp }} / {{ e.salud }}</td>
+            <td>{% if ve_todo %}<a href="{% url 'inicio:empleado_edit' e.pk %}">Editar</a> ·
+                <a href="{% url 'inicio:empleado_delete' e.pk %}">Eliminar</a>{% endif %}</td>
         </tr>
         {% empty %}
         <tr><td colspan="8" class="m">Sin datos</td></tr>
         {% endfor %}
     </table></div>
     {% if q %}<p class="m">Resultados para: {{ q }}</p>{% endif %}
+    {% if not ve_todo %}<p class="m">Vista reservada: RUT y sueldo se muestran enmascarados para su rol.</p>{% endif %}
 </div>
 </main>
 {% endblock %}
